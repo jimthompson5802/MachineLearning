@@ -1,0 +1,108 @@
+Machine Learning - Quiz 2
+========================================================
+
+Question 1
+-----------
+```{r ,warning=FALSE}
+library(AppliedPredictiveModeling)
+library(caret)
+data(AlzheimerDisease)
+
+adData = data.frame(diagnosis,predictors)
+trainIndex = createDataPartition(diagnosis, p = 0.50,list=FALSE)
+training = adData[trainIndex,]
+testing = adData[-trainIndex,]
+dim(training)
+dim(testing)
+
+```
+
+Question 2
+-----------
+```{r ,warning=FALSE}
+library(AppliedPredictiveModeling)
+library(ggplot2)
+data(concrete)
+library(caret)
+set.seed(975)
+inTrain = createDataPartition(mixtures$CompressiveStrength, p = 3/4)[[1]]
+training = mixtures[ inTrain,]
+testing = mixtures[-inTrain,]
+
+qplot(FlyAsh,CompressiveStrength,data=training)
+qplot(1:nrow(training),CompressiveStrength,data=training)
+featurePlot(x=subset(training),
+            y=training$CompressiveStrength,
+            plot="pairs")
+plot(1:length(training$CompressiveStrength),training$CompressiveStrength)
+
+
+```
+
+Question 3
+----------
+```{r ,warning=FALSE}
+library(AppliedPredictiveModeling)
+data(concrete)
+library(caret)
+set.seed(975)
+inTrain = createDataPartition(mixtures$CompressiveStrength, p = 3/4)[[1]]
+training = mixtures[ inTrain,]
+testing = mixtures[-inTrain,]
+
+summary(training)
+
+hist(training$Superplasticizer)
+
+```
+
+Question 4
+----------
+```{r ,warning=FALSE}
+set.seed(3433)
+library(AppliedPredictiveModeling)
+data(AlzheimerDisease)
+adData = data.frame(diagnosis,predictors)
+inTrain = createDataPartition(adData$diagnosis, p = 3/4)[[1]]
+training = adData[ inTrain,]
+testing = adData[-inTrain,]
+
+il.names <- grep("^IL",names(training),value=TRUE)
+my.data <- training[,il.names]
+pre.pca <- preProcess(my.data,method="pca",thresh=0.8);pre.pca
+
+
+```
+
+Question 5
+----------
+```{r ,warning=FALSE}
+set.seed(3433)
+library(AppliedPredictiveModeling)
+data(AlzheimerDisease)
+adData = data.frame(diagnosis,predictors)
+inTrain = createDataPartition(adData$diagnosis, p = 3/4)[[1]]
+training = adData[ inTrain,]
+testing = adData[-inTrain,]
+
+il.names <- grep("^IL",names(training),value=TRUE)
+
+tr.data <- training[,il.names]
+tr.data <- data.frame(training[,il.names],diagnosis=training$diagnosis)
+
+ts.data <- data.frame(testing[,il.names],diagnosis=testing$diagnosis)
+
+
+fit1 <- train(diagnosis~.,method="glm",data=tr.data)
+fit1
+
+trCtrl <- trainControl(preProcOptions=list(thresh=0.8))
+fit2 <- train(diagnosis~.,method="glm",preProcess="pca",data=tr.data,trControl=trCtrl)
+fit2
+
+cat("Confusion Matrix of non-PCA")
+confusionMatrix(ts.data$diagnosis,predict(fit1,ts.data))
+
+cat("Confusion Matrix for PCA model")
+confusionMatrix(ts.data$diagnosis,predict(fit2,ts.data))
+```
