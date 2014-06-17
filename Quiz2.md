@@ -17,10 +17,10 @@ library(caret)
 ```r
 data(AlzheimerDisease)
 
-adData = data.frame(diagnosis, predictors)
-trainIndex = createDataPartition(diagnosis, p = 0.5, list = FALSE)
-training = adData[trainIndex, ]
-testing = adData[-trainIndex, ]
+adData = data.frame(diagnosis,predictors)
+trainIndex = createDataPartition(diagnosis, p = 0.50,list=FALSE)
+training = adData[trainIndex,]
+testing = adData[-trainIndex,]
 dim(training)
 ```
 
@@ -36,7 +36,6 @@ dim(testing)
 ## [1] 166 131
 ```
 
-
 Question 2
 -----------
 
@@ -47,36 +46,33 @@ data(concrete)
 library(caret)
 set.seed(975)
 inTrain = createDataPartition(mixtures$CompressiveStrength, p = 3/4)[[1]]
-training = mixtures[inTrain, ]
-testing = mixtures[-inTrain, ]
+training = mixtures[ inTrain,]
+testing = mixtures[-inTrain,]
 
-qplot(FlyAsh, CompressiveStrength, data = training)
+qplot(FlyAsh,CompressiveStrength,data=training)
 ```
 
 ![plot of chunk unnamed-chunk-2](figure/unnamed-chunk-21.png) 
 
 ```r
-qplot(1:nrow(training), CompressiveStrength, data = training)
+qplot(1:nrow(training),CompressiveStrength,data=training)
 ```
 
 ![plot of chunk unnamed-chunk-2](figure/unnamed-chunk-22.png) 
 
 ```r
-featurePlot(x = subset(training), y = training$CompressiveStrength, plot = "pairs")
+featurePlot(x=subset(training),
+            y=training$CompressiveStrength,
+            plot="pairs")
 ```
 
 ![plot of chunk unnamed-chunk-2](figure/unnamed-chunk-23.png) 
 
 ```r
-plot(1:length(training$CompressiveStrength), training$CompressiveStrength)
+plot(1:length(training$CompressiveStrength),training$CompressiveStrength)
 ```
 
 ![plot of chunk unnamed-chunk-2](figure/unnamed-chunk-24.png) 
-
-```r
-
-```
-
 
 Question 3
 ----------
@@ -87,8 +83,8 @@ data(concrete)
 library(caret)
 set.seed(975)
 inTrain = createDataPartition(mixtures$CompressiveStrength, p = 3/4)[[1]]
-training = mixtures[inTrain, ]
-testing = mixtures[-inTrain, ]
+training = mixtures[ inTrain,]
+testing = mixtures[-inTrain,]
 
 summary(training)
 ```
@@ -118,12 +114,10 @@ summary(training)
 ```
 
 ```r
-
 hist(training$Superplasticizer)
 ```
 
 ![plot of chunk unnamed-chunk-3](figure/unnamed-chunk-3.png) 
-
 
 Question 4
 ----------
@@ -132,15 +126,14 @@ Question 4
 set.seed(3433)
 library(AppliedPredictiveModeling)
 data(AlzheimerDisease)
-adData = data.frame(diagnosis, predictors)
+adData = data.frame(diagnosis,predictors)
 inTrain = createDataPartition(adData$diagnosis, p = 3/4)[[1]]
-training = adData[inTrain, ]
-testing = adData[-inTrain, ]
+training = adData[ inTrain,]
+testing = adData[-inTrain,]
 
-il.names <- grep("^IL", names(training), value = TRUE)
-my.data <- training[, il.names]
-pre.pca <- preProcess(my.data, method = "pca", thresh = 0.8)
-pre.pca
+il.names <- grep("^IL",names(training),value=TRUE)
+my.data <- training[,il.names]
+pre.pca <- preProcess(my.data,method="pca",thresh=0.8);pre.pca
 ```
 
 ```
@@ -154,11 +147,6 @@ pre.pca
 ## PCA needed 7 components to capture 80 percent of the variance
 ```
 
-```r
-
-```
-
-
 Question 5
 ----------
 
@@ -166,20 +154,20 @@ Question 5
 set.seed(3433)
 library(AppliedPredictiveModeling)
 data(AlzheimerDisease)
-adData = data.frame(diagnosis, predictors)
+adData = data.frame(diagnosis,predictors)
 inTrain = createDataPartition(adData$diagnosis, p = 3/4)[[1]]
-training = adData[inTrain, ]
-testing = adData[-inTrain, ]
+training = adData[ inTrain,]
+testing = adData[-inTrain,]
 
-il.names <- grep("^IL", names(training), value = TRUE)
+il.names <- grep("^IL",names(training),value=TRUE)
 
-tr.data <- training[, il.names]
-tr.data <- data.frame(training[, il.names], diagnosis = training$diagnosis)
+tr.data <- training[,il.names]
+tr.data <- data.frame(training[,il.names],diagnosis=training$diagnosis)
 
-ts.data <- data.frame(testing[, il.names], diagnosis = testing$diagnosis)
+ts.data <- data.frame(testing[,il.names],diagnosis=testing$diagnosis)
 
 
-fit1 <- train(diagnosis ~ ., method = "glm", data = tr.data)
+fit1 <- train(diagnosis~.,method="glm",data=tr.data)
 fit1
 ```
 
@@ -204,10 +192,8 @@ fit1
 ```
 
 ```r
-
-trCtrl <- trainControl(preProcOptions = list(thresh = 0.8))
-fit2 <- train(diagnosis ~ ., method = "glm", preProcess = "pca", data = tr.data, 
-    trControl = trCtrl)
+trCtrl <- trainControl(preProcOptions=list(thresh=0.8))
+fit2 <- train(diagnosis~.,method="glm",preProcess="pca",data=tr.data,trControl=trCtrl)
 fit2
 ```
 
@@ -232,7 +218,6 @@ fit2
 ```
 
 ```r
-
 cat("Confusion Matrix of non-PCA")
 ```
 
@@ -241,7 +226,7 @@ cat("Confusion Matrix of non-PCA")
 ```
 
 ```r
-confusionMatrix(ts.data$diagnosis, predict(fit1, ts.data))
+confusionMatrix(ts.data$diagnosis,predict(fit1,ts.data))
 ```
 
 ```
@@ -274,7 +259,6 @@ confusionMatrix(ts.data$diagnosis, predict(fit1, ts.data))
 ```
 
 ```r
-
 cat("Confusion Matrix for PCA model")
 ```
 
@@ -283,7 +267,7 @@ cat("Confusion Matrix for PCA model")
 ```
 
 ```r
-confusionMatrix(ts.data$diagnosis, predict(fit2, ts.data))
+confusionMatrix(ts.data$diagnosis,predict(fit2,ts.data))
 ```
 
 ```
@@ -314,4 +298,3 @@ confusionMatrix(ts.data$diagnosis, predict(fit2, ts.data))
 ##        'Positive' Class : Impaired      
 ## 
 ```
-
