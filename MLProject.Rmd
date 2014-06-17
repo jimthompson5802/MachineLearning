@@ -1,0 +1,120 @@
+Practical Machine Learning - Project
+========================================================
+```{r ,warning=FALSE}
+library(caret)
+library(plyr)
+
+```
+
+Data Preparation
+----------------
+
+```{r DataIngestion,cache=TRUE,warning=FALSE}
+
+raw.data <- read.csv("./data/pml-training.csv",
+                     stringsAsFactors=FALSE)
+raw.data <- subset(raw.data,new_window == "no")
+
+## eliminate columns that are constant or near zero variance
+nz.idx <- nearZeroVar(raw.data)
+raw.data <- raw.data[,-nz.idx]
+
+## eliminate identifier attributes that are not generalizable
+raw.data <- subset(raw.data,select=-c(X,user_name,cvtd_timestamp,
+                                num_window,
+                                raw_timestamp_part_1,
+                                raw_timestamp_part_2))
+
+## convert classe into factor variable for training and prediciton
+raw.data <- mutate(raw.data,
+                   classe=factor(classe))
+
+## extract subset of the training data for model building and validation
+set.seed(123)
+raw.idx <- createDataPartition(raw.data$classe,p=0.25,list=FALSE)
+raw.data <- raw.data[raw.idx,]
+
+
+## split model building subset into training and test sets
+set.seed(456)
+train.idx <- createDataPartition(raw.data$classe,p=0.6,list=FALSE)
+
+train <- raw.data[train.idx,]
+test <- raw.data[-train.idx,]
+```
+
+
+Model Training
+----------
+```{r ModelTraining,cache=TRUE,warning=FALSE,dependson="DataIngestion"}
+# library(e1071)
+## set up for parallel processing
+library(doSNOW)
+hosts <- c(rep("localhost",2))
+cl <- makeSOCKcluster(hosts)
+registerDoSNOW(cl)
+
+trCtrl <- trainControl(method="repeatedcv", number=10, repeats=5)
+
+set.seed(789)
+system.time(gbm.mdl1 <- train(classe~.,train,method="gbm",verbose=FALSE,
+                  metric="Accuracy",
+                  trControl=trCtrl))
+## stop cluster
+stopCluster(cl)
+
+print(gbm.mdl1)
+```
+
+```{r ModelValidation,warning=FALSE}
+
+pred.classe <- predict(gbm.mdl1,test)
+
+
+confusionMatrix(pred.classe,test$classe)
+
+```
+
+```{r ModelAnalysis,warning=FALSE}
+vi <- data.frame(varImp(gbm.mdl1)[1])
+sorted.vi.idx <- rev(order(vi))
+sorted.vi.idx <- sorted.vi.idx[1:20]
+
+
+par(mar=c(5,12,4,2)) # increase y-axis margin.
+
+barplot(vi[rev(sorted.vi.idx),1],
+        names.arg=rownames(vi)[rev(sorted.vi.idx)],
+        horiz=TRUE,
+        las=2,
+        xlab="Importance",
+        main="Top 20 Important Attributes"
+        )
+```
+
+
+Submission
+----------
+```{r MakeSubmission,warning=FALSE}
+##
+# Instructor provided function to generate submission data for grading
+##
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+
+
+sub.data <- read.csv("./data/pml-testing.csv",
+                     stringsAsFactors=FALSE)
+
+sub.classe <- predict(gbm.mdl1,sub.data)
+
+pml_write_files(sub.classe)
+
+```
+
+
