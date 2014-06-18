@@ -1,40 +1,76 @@
 Practical Machine Learning - Project
-========================================================
+====================================
+Author: Jim Thompson
 
-```r
-library(caret)
-```
+Summary
+-------
+This project develops a predictive model for assessing a participant's ability to 
+correctly perform the Unilateral Dumbbell Biceps Curl^1.  Participant's performance
+is assessed into one of five classes.  One class represents performing the exercise
+correctly, the remaining four classes represent common mistakes.  Data used for prediction are motion data captured by sensors attached to various parts of the participant's body and dumbbell.  
 
-```
-## Loading required package: lattice
-## Loading required package: ggplot2
-```
+The predictive model developed in this work is based on a boosted tree machine 
+learning algorithm.  The specific implementation used is the **gbm** package from R.
+The model is able to correctly predict 93.8% of the out-of-sample test cases.
 
-```r
-library(plyr)
-```
+The remainder of this paper describes data preparation for modeling, model training and
+assessing the model's performance.
+
 
 Data Preparation
 --------------
-After a brief review of the training andd test data for submission, the following 
-steps were taken to prepare the data for training data for model building and model
-performance assessment.
+Specify required R packages.
+
+```r
+library(caret)
+library(plyr)
+```
+Data for model [training](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv) and [test submission](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv) were obtained through Coursera.
+
+After downloading the data, we begin by reading the training data.
+
+```r
+raw.data <- read.csv("./data/pml-training.csv",
+                     stringsAsFactors=FALSE)
+
+
+## save names of attributes
+raw.names <- names(raw.data)
+raw.rows <- nrow(raw.data)
+```
+The data contains 19,622 observations each with 160 attributes.
+Exercise performance is categorized into one of 5 classes, caputured in the attribute "classe".  Here is the percent distribution values in the classe attribute:
+
+```r
+dist.raw <- round(100*table(raw.data$classe)/raw.rows,2)
+names(dist.raw) <- c("A","B","C","D","E")
+
+## Percent distribution of performance classes
+dist.raw
+```
+
+```
+##     A     B     C     D     E 
+## 28.44 19.35 17.44 16.39 18.38
+```
+Class "A" represents performing the exercise correctly.  The other classes indicate
+various types of mistakes.
+
+
+After a brief review of the training and test data for submission, the following 
+steps were taken to prepare data for model building and performance assessment.
 * Keep only observations that are generated during movement.  This makes the training
 data similar to the data used for submission.
 * Eliminate attributes that are near or at zero variance.  Low or no variance attributes
 do not provide any value in the modeling processing.
 * Eliminate attributes that are not generalizable, such as time stamps and user
-identifiers.  These attributes are unique to the training data and offer an
-opportunity for data leakage.
+identifiers.  These attributes are unique to the training data and can lead data leakage, where the
+model will overfit the training data and not predict well on other data sets.
 
 
 ```r
-raw.data <- read.csv("./data/pml-training.csv",
-                     stringsAsFactors=FALSE)
+## keep only raw motion data
 raw.data <- subset(raw.data,new_window == "no")
-
-## save names of attributes
-raw.names <- names(raw.data)
 
 ## eliminate columns that are constant or near zero variance
 nz.idx <- nearZeroVar(raw.data)
@@ -64,10 +100,45 @@ train <- raw.data[train.idx,]
 test <- raw.data[-train.idx,]
 ```
 
-From the original 19,622 observations, we extract a 25% (4,805) random sample 
+From the original 19,622 observations, we extract a 25% 
+(4,805) random sample 
 for model building.  The reason for selecting this subset is to speed up training and
-validaion work.  This extract is then split into a 60% (2,855)for training 
+validation work.  This extract is then split into a 60% (2,885) for training 
 and 40% (1,920) for assessing model performance.
+Out of the original 160 attributes, we end up using 53 
+for training and validation.  See Appdendix for details on attributes used or eliminated.
+
+Here is the percent distribution of the classes in the training and test data
+
+```r
+dist.train <- round(100*table(train$classe)/nrow(train),2)
+names(dist.train) <- c("A","B","C","D","E")
+
+dist.test <- round(100*table(test$classe)/nrow(test),2)
+names(dist.test) <- c("A","B","C","D","E")
+
+## combine the distribution of classe values for the original, training and test data sets
+df <- data.frame(classe=LETTERS[1:5],Original=as.vector(dist.raw),
+           Training=as.vector(dist.train),
+            Testing=as.vector(dist.test),
+            stringsAsFactors=FALSE)
+```
+
+```
+## Percent Distrbutions of classe values
+## Original/Training/Test Data Sets
+```
+
+```
+##   classe Original Training Testing
+## 1      A    28.44    28.46   28.49
+## 2      B    19.35    19.34   19.38
+## 3      C    17.44    17.44   17.45
+## 4      D    16.39    16.40   16.35
+## 5      E    18.38    18.37   18.33
+```
+From this we see the training and testing data have same distribution of classe values as the original
+raw data.
 
 Model Training
 ----------
@@ -94,7 +165,7 @@ system.time(gbm.mdl1 <- train(classe~.,train,method="gbm",verbose=FALSE,
 
 ```
 ##    user  system elapsed 
-##    6.31    0.11  363.02
+##    6.84    0.08  366.44
 ```
 
 ```r
@@ -120,12 +191,12 @@ print(gbm.mdl1)
 ## 
 ##   interaction.depth  n.trees  Accuracy  Kappa  Accuracy SD  Kappa SD
 ##   1                  50       0.7       0.7    0.02         0.03    
-##   1                  100      0.8       0.8    0.02         0.02    
+##   1                  100      0.8       0.8    0.02         0.03    
 ##   1                  200      0.8       0.8    0.02         0.03    
 ##   2                  50       0.8       0.8    0.02         0.02    
-##   2                  100      0.9       0.9    0.02         0.03    
+##   2                  100      0.9       0.9    0.02         0.02    
 ##   2                  200      0.9       0.9    0.02         0.02    
-##   3                  50       0.9       0.8    0.02         0.03    
+##   3                  50       0.9       0.8    0.02         0.02    
 ##   3                  100      0.9       0.9    0.02         0.02    
 ##   3                  200      0.9       0.9    0.01         0.02    
 ## 
@@ -145,24 +216,8 @@ is from 92.6% to 94.8%.
 
 ```r
 pred.classe <- predict(gbm.mdl1,test)
-```
 
-```
-## Loading required package: gbm
-## Loading required package: survival
-## Loading required package: splines
-## 
-## Attaching package: 'survival'
-## 
-## The following object is masked from 'package:caret':
-## 
-##     cluster
-## 
-## Loading required package: parallel
-## Loaded gbm 2.1
-```
 
-```r
 confusionMatrix(pred.classe,test$classe)
 ```
 
@@ -202,7 +257,7 @@ confusionMatrix(pred.classe,test$classe)
 
 One feature of R's **gbm** package is the ability to identify attributes that are 
 important in predicting the classe attribute.  Below shows the top 20 explanatory
-variables in descending order based on gbm.
+variables in descending order.
 
 ```r
 vi <- data.frame(varImp(gbm.mdl1)[1])
@@ -255,8 +310,12 @@ pml_write_files(sub.classe)
 Following are the predicted classe value for the test cases.
 
 ```r
-data.frame(Test.Case=1:length(sub.classe),Predicted.classe=sub.classe,
+df <- data.frame(Test.Case=1:length(sub.classe),Predicted.classe=sub.classe,
            row.names=NULL,stringsAsFactors=FALSE)
+```
+
+```
+## Predicted 'classe' Values for Project Submission
 ```
 
 ```
@@ -284,9 +343,13 @@ data.frame(Test.Case=1:length(sub.classe),Predicted.classe=sub.classe,
 ```
 
 
+Reference
+---------
+1. Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. **Qualitative Activity Recognition of Weight Lifting Exercises**. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.  [See Documentation](http://groupware.les.inf.puc-rio.br/har)
+
 Appendix
 --------
-These are the attributes selected for building the gbm model.
+These are the attributes selected for building the **gbm** model.
 
 ```r
 names(train)

@@ -181,21 +181,62 @@ hljs.initHighlightingOnLoad();
 <body>
 <h1>Practical Machine Learning - Project</h1>
 
-<pre><code class="r">library(caret)
-</code></pre>
+<p>Author: Jim Thompson</p>
 
-<pre><code>## Loading required package: lattice
-## Loading required package: ggplot2
-</code></pre>
+<h2>Summary</h2>
 
-<pre><code class="r">library(plyr)
-</code></pre>
+<p>This project develops a predictive model for assessing a participant&#39;s ability to 
+correctly perform the Unilateral Dumbbell Biceps Curl<sup>1.</sup>  Participant&#39;s performance
+is assessed into one of five classes.  One class represents performing the exercise
+correctly, the remaining four classes represent common mistakes.  Data used for prediction are motion data captured by sensors attached to various parts of the participant&#39;s body and dumbbell.  </p>
+
+<p>The predictive model developed in this work is based on a boosted tree machine 
+learning algorithm.  The specific implementation used is the <strong>gbm</strong> package from R.
+The model is able to correctly predict 93.8% of the out-of-sample test cases.</p>
+
+<p>The remainder of this paper describes data preparation for modeling, model training and
+assessing the model&#39;s performance.</p>
 
 <h2>Data Preparation</h2>
 
-<p>After a brief review of the training andd test data for submission, the following 
-steps were taken to prepare the data for training data for model building and model
-performance assessment.</p>
+<p>Specify required R packages.</p>
+
+<pre><code class="r">library(caret)
+library(plyr)
+</code></pre>
+
+<p>Data for model <a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv">training</a> and <a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv">test submission</a> were obtained through Coursera.</p>
+
+<p>After downloading the data, we begin by reading the training data.</p>
+
+<pre><code class="r">raw.data &lt;- read.csv(&quot;./data/pml-training.csv&quot;,
+                     stringsAsFactors=FALSE)
+
+
+## save names of attributes
+raw.names &lt;- names(raw.data)
+raw.rows &lt;- nrow(raw.data)
+</code></pre>
+
+<p>The data contains 19,622 observations each with 160 attributes.
+Exercise performance is categorized into one of 5 classes, caputured in the attribute &ldquo;classe&rdquo;.  Here is the percent distribution values in the classe attribute:</p>
+
+<pre><code class="r">dist.raw &lt;- round(100*table(raw.data$classe)/raw.rows,2)
+names(dist.raw) &lt;- c(&quot;A&quot;,&quot;B&quot;,&quot;C&quot;,&quot;D&quot;,&quot;E&quot;)
+
+## Percent distribution of performance classes
+dist.raw
+</code></pre>
+
+<pre><code>##     A     B     C     D     E 
+## 28.44 19.35 17.44 16.39 18.38
+</code></pre>
+
+<p>Class &ldquo;A&rdquo; represents performing the exercise correctly.  The other classes indicate
+various types of mistakes.</p>
+
+<p>After a brief review of the training and test data for submission, the following 
+steps were taken to prepare data for model building and performance assessment.</p>
 
 <ul>
 <li>Keep only observations that are generated during movement.  This makes the training
@@ -203,16 +244,12 @@ data similar to the data used for submission.</li>
 <li>Eliminate attributes that are near or at zero variance.  Low or no variance attributes
 do not provide any value in the modeling processing.</li>
 <li>Eliminate attributes that are not generalizable, such as time stamps and user
-identifiers.  These attributes are unique to the training data and offer an
-opportunity for data leakage.</li>
+identifiers.  These attributes are unique to the training data and can lead data leakage, where the
+model will overfit the training data and not predict well on other data sets.</li>
 </ul>
 
-<pre><code class="r">raw.data &lt;- read.csv(&quot;./data/pml-training.csv&quot;,
-                     stringsAsFactors=FALSE)
+<pre><code class="r">## keep only raw motion data
 raw.data &lt;- subset(raw.data,new_window == &quot;no&quot;)
-
-## save names of attributes
-raw.names &lt;- names(raw.data)
 
 ## eliminate columns that are constant or near zero variance
 nz.idx &lt;- nearZeroVar(raw.data)
@@ -242,10 +279,43 @@ train &lt;- raw.data[train.idx,]
 test &lt;- raw.data[-train.idx,]
 </code></pre>
 
-<p>From the original 19,622 observations, we extract a 25% (4,805) random sample 
+<p>From the original 19,622 observations, we extract a 25% 
+(4,805) random sample 
 for model building.  The reason for selecting this subset is to speed up training and
-validaion work.  This extract is then split into a 60% (2,855)for training 
-and 40% (1,920) for assessing model performance.</p>
+validation work.  This extract is then split into a 60% (2,885) for training 
+and 40% (1,920) for assessing model performance.
+Out of the original 160 attributes, we end up using 53 
+for training and validation.  See Appdendix for details on attributes used or eliminated.</p>
+
+<p>Here is the percent distribution of the classes in the training and test data</p>
+
+<pre><code class="r">dist.train &lt;- round(100*table(train$classe)/nrow(train),2)
+names(dist.train) &lt;- c(&quot;A&quot;,&quot;B&quot;,&quot;C&quot;,&quot;D&quot;,&quot;E&quot;)
+
+dist.test &lt;- round(100*table(test$classe)/nrow(test),2)
+names(dist.test) &lt;- c(&quot;A&quot;,&quot;B&quot;,&quot;C&quot;,&quot;D&quot;,&quot;E&quot;)
+
+## combine the distribution of classe values for the original, training and test data sets
+df &lt;- data.frame(classe=LETTERS[1:5],Original=as.vector(dist.raw),
+           Training=as.vector(dist.train),
+            Testing=as.vector(dist.test),
+            stringsAsFactors=FALSE)
+</code></pre>
+
+<pre><code>## Percent Distrbutions of classe values
+## Original/Training/Test Data Sets
+</code></pre>
+
+<pre><code>##   classe Original Training Testing
+## 1      A    28.44    28.46   28.49
+## 2      B    19.35    19.34   19.38
+## 3      C    17.44    17.44   17.45
+## 4      D    16.39    16.40   16.35
+## 5      E    18.38    18.37   18.33
+</code></pre>
+
+<p>From this we see the training and testing data have same distribution of classe values as the original
+raw data.</p>
 
 <h2>Model Training</h2>
 
@@ -270,7 +340,7 @@ system.time(gbm.mdl1 &lt;- train(classe~.,train,method=&quot;gbm&quot;,verbose=F
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##    6.31    0.11  363.02
+##    6.84    0.08  366.44
 </code></pre>
 
 <pre><code class="r">## stop cluster
@@ -294,12 +364,12 @@ print(gbm.mdl1)
 ## 
 ##   interaction.depth  n.trees  Accuracy  Kappa  Accuracy SD  Kappa SD
 ##   1                  50       0.7       0.7    0.02         0.03    
-##   1                  100      0.8       0.8    0.02         0.02    
+##   1                  100      0.8       0.8    0.02         0.03    
 ##   1                  200      0.8       0.8    0.02         0.03    
 ##   2                  50       0.8       0.8    0.02         0.02    
-##   2                  100      0.9       0.9    0.02         0.03    
+##   2                  100      0.9       0.9    0.02         0.02    
 ##   2                  200      0.9       0.9    0.02         0.02    
-##   3                  50       0.9       0.8    0.02         0.03    
+##   3                  50       0.9       0.8    0.02         0.02    
 ##   3                  100      0.9       0.9    0.02         0.02    
 ##   3                  200      0.9       0.9    0.01         0.02    
 ## 
@@ -317,23 +387,9 @@ model is 93.8% accurate on the test data.  The 95% confidence interval for accur
 is from 92.6% to 94.8%.</p>
 
 <pre><code class="r">pred.classe &lt;- predict(gbm.mdl1,test)
-</code></pre>
 
-<pre><code>## Loading required package: gbm
-## Loading required package: survival
-## Loading required package: splines
-## 
-## Attaching package: &#39;survival&#39;
-## 
-## The following object is masked from &#39;package:caret&#39;:
-## 
-##     cluster
-## 
-## Loading required package: parallel
-## Loaded gbm 2.1
-</code></pre>
 
-<pre><code class="r">confusionMatrix(pred.classe,test$classe)
+confusionMatrix(pred.classe,test$classe)
 </code></pre>
 
 <pre><code>## Confusion Matrix and Statistics
@@ -371,7 +427,7 @@ is from 92.6% to 94.8%.</p>
 
 <p>One feature of R&#39;s <strong>gbm</strong> package is the ability to identify attributes that are 
 important in predicting the classe attribute.  Below shows the top 20 explanatory
-variables in descending order based on gbm.</p>
+variables in descending order.</p>
 
 <pre><code class="r">vi &lt;- data.frame(varImp(gbm.mdl1)[1])
 sorted.vi.idx &lt;- rev(order(vi))
@@ -421,8 +477,11 @@ pml_write_files(sub.classe)
 
 <p>Following are the predicted classe value for the test cases.</p>
 
-<pre><code class="r">data.frame(Test.Case=1:length(sub.classe),Predicted.classe=sub.classe,
+<pre><code class="r">df &lt;- data.frame(Test.Case=1:length(sub.classe),Predicted.classe=sub.classe,
            row.names=NULL,stringsAsFactors=FALSE)
+</code></pre>
+
+<pre><code>## Predicted &#39;classe&#39; Values for Project Submission
 </code></pre>
 
 <pre><code>##    Test.Case Predicted.classe
@@ -448,9 +507,15 @@ pml_write_files(sub.classe)
 ## 20        20                B
 </code></pre>
 
+<h2>Reference</h2>
+
+<ol>
+<li>Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. <strong>Qualitative Activity Recognition of Weight Lifting Exercises</strong>. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human &#39;13) . Stuttgart, Germany: ACM SIGCHI, 2013.  <a href="http://groupware.les.inf.puc-rio.br/har">See Documentation</a></li>
+</ol>
+
 <h2>Appendix</h2>
 
-<p>These are the attributes selected for building the gbm model.</p>
+<p>These are the attributes selected for building the <strong>gbm</strong> model.</p>
 
 <pre><code class="r">names(train)
 </code></pre>
