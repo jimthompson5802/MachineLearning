@@ -7,13 +7,26 @@ library(plyr)
 ```
 
 Data Preparation
-----------------
+--------------
+After a brief review of the training andd test data for submission, the following 
+steps were taken to prepare the data for training data for model building and model
+performance assessment.
+* Keep only observations that are generated during movement.  This makes the training
+data similar to the data used for submission.
+* Eliminate attributes that are near or at zero variance.  Low or no variance attributes
+do not provide any value in the modeling processing.
+* Eliminate attributes that are not generalizable, such as time stamps and user
+identifiers.  These attributes are unique to the training data and offer an
+opportunity for data leakage.
 
 ```{r DataIngestion,cache=TRUE,warning=FALSE}
 
 raw.data <- read.csv("./data/pml-training.csv",
                      stringsAsFactors=FALSE)
 raw.data <- subset(raw.data,new_window == "no")
+
+## save names of attributes
+raw.names <- names(raw.data)
 
 ## eliminate columns that are constant or near zero variance
 nz.idx <- nearZeroVar(raw.data)
@@ -43,9 +56,17 @@ train <- raw.data[train.idx,]
 test <- raw.data[-train.idx,]
 ```
 
+From the original 19,622 observations, we extract a 25% (4,805) random sample 
+for model building.  The reason for selecting this subset is to speed up training and
+validaion work.  This extract is then split into a 60% (2,855)for training 
+and 40% (1,920) for assessing model performance.
 
 Model Training
 ----------
+Gradient Boosting algorithm (**gbm** R package) is used for the machine learning algorithm. 
+Repeated cross-validation is used to determine values for the algorithm's 
+hyper-parameters.  For purposes of assessing model performance, we use the accuracy, i.e.,
+the percent of test case that are assigned to the correct classe value.
 ```{r ModelTraining,cache=TRUE,warning=FALSE,dependson="DataIngestion"}
 # library(e1071)
 ## set up for parallel processing
@@ -66,7 +87,14 @@ stopCluster(cl)
 print(gbm.mdl1)
 ```
 
-```{r ModelValidation,warning=FALSE}
+Model Performance
+-----------------
+Using the **gbm** model with the optimal hyper-parameters, determined above, we assess
+model performance.  First we present the confusion matrix.  Next we see that the
+model is 93.8% accurate on the test data.  The 95% confidence interval for accuracy
+is from 92.6% to 94.8%.
+
+```{r ModelPerformance,warning=FALSE}
 
 pred.classe <- predict(gbm.mdl1,test)
 
@@ -75,6 +103,9 @@ confusionMatrix(pred.classe,test$classe)
 
 ```
 
+One feature of R's **gbm** package is the ability to identify attributes that are 
+important in predicting the classe attribute.  Below shows the top 20 explanatory
+variables in descending order based on gbm.
 ```{r ModelAnalysis,warning=FALSE}
 vi <- data.frame(varImp(gbm.mdl1)[1])
 sorted.vi.idx <- rev(order(vi))
@@ -95,6 +126,7 @@ barplot(vi[rev(sorted.vi.idx),1],
 
 Submission
 ----------
+The following code generates submission files for the project.
 ```{r MakeSubmission,warning=FALSE}
 ##
 # Instructor provided function to generate submission data for grading
@@ -107,14 +139,39 @@ pml_write_files = function(x){
   }
 }
 
-
+##
+# read in test set for submission
+##
 sub.data <- read.csv("./data/pml-testing.csv",
                      stringsAsFactors=FALSE)
 
+## predict classe for the submission test set
 sub.classe <- predict(gbm.mdl1,sub.data)
 
+## create the submission files
 pml_write_files(sub.classe)
-
 ```
+Following are the predicted classe value for the test cases.
+```{r}
+data.frame(Test.Case=1:length(sub.classe),Predicted.classe=sub.classe,
+           row.names=NULL,stringsAsFactors=FALSE)
+```
+
+
+Appendix
+--------
+These are the attributes selected for building the gbm model.
+```{r}
+names(train)
+```
+
+
+Following is the list of attributes removed from analysis because of near zero
+variance or attributes, such as time stamps or identifiers, that will not
+generalize.
+```{r}
+setdiff(raw.names,names(train))
+```
+
 
 

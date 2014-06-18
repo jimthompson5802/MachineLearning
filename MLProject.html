@@ -193,9 +193,26 @@ hljs.initHighlightingOnLoad();
 
 <h2>Data Preparation</h2>
 
+<p>After a brief review of the training andd test data for submission, the following 
+steps were taken to prepare the data for training data for model building and model
+performance assessment.</p>
+
+<ul>
+<li>Keep only observations that are generated during movement.  This makes the training
+data similar to the data used for submission.</li>
+<li>Eliminate attributes that are near or at zero variance.  Low or no variance attributes
+do not provide any value in the modeling processing.</li>
+<li>Eliminate attributes that are not generalizable, such as time stamps and user
+identifiers.  These attributes are unique to the training data and offer an
+opportunity for data leakage.</li>
+</ul>
+
 <pre><code class="r">raw.data &lt;- read.csv(&quot;./data/pml-training.csv&quot;,
                      stringsAsFactors=FALSE)
 raw.data &lt;- subset(raw.data,new_window == &quot;no&quot;)
+
+## save names of attributes
+raw.names &lt;- names(raw.data)
 
 ## eliminate columns that are constant or near zero variance
 nz.idx &lt;- nearZeroVar(raw.data)
@@ -225,7 +242,17 @@ train &lt;- raw.data[train.idx,]
 test &lt;- raw.data[-train.idx,]
 </code></pre>
 
+<p>From the original 19,622 observations, we extract a 25% (4,805) random sample 
+for model building.  The reason for selecting this subset is to speed up training and
+validaion work.  This extract is then split into a 60% (2,855)for training 
+and 40% (1,920) for assessing model performance.</p>
+
 <h2>Model Training</h2>
+
+<p>Gradient Boosting algorithm (<strong>gbm</strong> R package) is used for the machine learning algorithm. 
+Repeated cross-validation is used to determine values for the algorithm&#39;s 
+hyper-parameters.  For purposes of assessing model performance, we use the accuracy, i.e.,
+the percent of test case that are assigned to the correct classe value.</p>
 
 <pre><code class="r"># library(e1071)
 ## set up for parallel processing
@@ -243,7 +270,7 @@ system.time(gbm.mdl1 &lt;- train(classe~.,train,method=&quot;gbm&quot;,verbose=F
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##    6.43    0.09  347.21
+##    6.31    0.11  363.02
 </code></pre>
 
 <pre><code class="r">## stop cluster
@@ -267,13 +294,13 @@ print(gbm.mdl1)
 ## 
 ##   interaction.depth  n.trees  Accuracy  Kappa  Accuracy SD  Kappa SD
 ##   1                  50       0.7       0.7    0.02         0.03    
-##   1                  100      0.8       0.8    0.02         0.03    
+##   1                  100      0.8       0.8    0.02         0.02    
 ##   1                  200      0.8       0.8    0.02         0.03    
-##   2                  50       0.8       0.8    0.02         0.03    
-##   2                  100      0.9       0.9    0.02         0.02    
+##   2                  50       0.8       0.8    0.02         0.02    
+##   2                  100      0.9       0.9    0.02         0.03    
 ##   2                  200      0.9       0.9    0.02         0.02    
-##   3                  50       0.9       0.8    0.02         0.02    
-##   3                  100      0.9       0.9    0.01         0.02    
+##   3                  50       0.9       0.8    0.02         0.03    
+##   3                  100      0.9       0.9    0.02         0.02    
 ##   3                  200      0.9       0.9    0.01         0.02    
 ## 
 ## Tuning parameter &#39;shrinkage&#39; was held constant at a value of 0.1
@@ -282,10 +309,31 @@ print(gbm.mdl1)
 ##  interaction.depth = 3 and shrinkage = 0.1.
 </code></pre>
 
+<h2>Model Performance</h2>
+
+<p>Using the <strong>gbm</strong> model with the optimal hyper-parameters, determined above, we assess
+model performance.  First we present the confusion matrix.  Next we see that the
+model is 93.8% accurate on the test data.  The 95% confidence interval for accuracy
+is from 92.6% to 94.8%.</p>
+
 <pre><code class="r">pred.classe &lt;- predict(gbm.mdl1,test)
+</code></pre>
 
+<pre><code>## Loading required package: gbm
+## Loading required package: survival
+## Loading required package: splines
+## 
+## Attaching package: &#39;survival&#39;
+## 
+## The following object is masked from &#39;package:caret&#39;:
+## 
+##     cluster
+## 
+## Loading required package: parallel
+## Loaded gbm 2.1
+</code></pre>
 
-confusionMatrix(pred.classe,test$classe)
+<pre><code class="r">confusionMatrix(pred.classe,test$classe)
 </code></pre>
 
 <pre><code>## Confusion Matrix and Statistics
@@ -321,6 +369,10 @@ confusionMatrix(pred.classe,test$classe)
 ## Balanced Accuracy       0.984    0.953    0.954    0.952    0.950
 </code></pre>
 
+<p>One feature of R&#39;s <strong>gbm</strong> package is the ability to identify attributes that are 
+important in predicting the classe attribute.  Below shows the top 20 explanatory
+variables in descending order based on gbm.</p>
+
 <pre><code class="r">vi &lt;- data.frame(varImp(gbm.mdl1)[1])
 sorted.vi.idx &lt;- rev(order(vi))
 sorted.vi.idx &lt;- sorted.vi.idx[1:20]
@@ -341,6 +393,8 @@ barplot(vi[rev(sorted.vi.idx),1],
 
 <h2>Submission</h2>
 
+<p>The following code generates submission files for the project.</p>
+
 <pre><code class="r">##
 # Instructor provided function to generate submission data for grading
 ##
@@ -352,13 +406,136 @@ pml_write_files = function(x){
   }
 }
 
-
+##
+# read in test set for submission
+##
 sub.data &lt;- read.csv(&quot;./data/pml-testing.csv&quot;,
                      stringsAsFactors=FALSE)
 
+## predict classe for the submission test set
 sub.classe &lt;- predict(gbm.mdl1,sub.data)
 
+## create the submission files
 pml_write_files(sub.classe)
+</code></pre>
+
+<p>Following are the predicted classe value for the test cases.</p>
+
+<pre><code class="r">data.frame(Test.Case=1:length(sub.classe),Predicted.classe=sub.classe,
+           row.names=NULL,stringsAsFactors=FALSE)
+</code></pre>
+
+<pre><code>##    Test.Case Predicted.classe
+## 1          1                B
+## 2          2                A
+## 3          3                B
+## 4          4                A
+## 5          5                A
+## 6          6                E
+## 7          7                D
+## 8          8                B
+## 9          9                A
+## 10        10                A
+## 11        11                B
+## 12        12                C
+## 13        13                B
+## 14        14                A
+## 15        15                E
+## 16        16                E
+## 17        17                A
+## 18        18                B
+## 19        19                B
+## 20        20                B
+</code></pre>
+
+<h2>Appendix</h2>
+
+<p>These are the attributes selected for building the gbm model.</p>
+
+<pre><code class="r">names(train)
+</code></pre>
+
+<pre><code>##  [1] &quot;roll_belt&quot;            &quot;pitch_belt&quot;           &quot;yaw_belt&quot;            
+##  [4] &quot;total_accel_belt&quot;     &quot;gyros_belt_x&quot;         &quot;gyros_belt_y&quot;        
+##  [7] &quot;gyros_belt_z&quot;         &quot;accel_belt_x&quot;         &quot;accel_belt_y&quot;        
+## [10] &quot;accel_belt_z&quot;         &quot;magnet_belt_x&quot;        &quot;magnet_belt_y&quot;       
+## [13] &quot;magnet_belt_z&quot;        &quot;roll_arm&quot;             &quot;pitch_arm&quot;           
+## [16] &quot;yaw_arm&quot;              &quot;total_accel_arm&quot;      &quot;gyros_arm_x&quot;         
+## [19] &quot;gyros_arm_y&quot;          &quot;gyros_arm_z&quot;          &quot;accel_arm_x&quot;         
+## [22] &quot;accel_arm_y&quot;          &quot;accel_arm_z&quot;          &quot;magnet_arm_x&quot;        
+## [25] &quot;magnet_arm_y&quot;         &quot;magnet_arm_z&quot;         &quot;roll_dumbbell&quot;       
+## [28] &quot;pitch_dumbbell&quot;       &quot;yaw_dumbbell&quot;         &quot;total_accel_dumbbell&quot;
+## [31] &quot;gyros_dumbbell_x&quot;     &quot;gyros_dumbbell_y&quot;     &quot;gyros_dumbbell_z&quot;    
+## [34] &quot;accel_dumbbell_x&quot;     &quot;accel_dumbbell_y&quot;     &quot;accel_dumbbell_z&quot;    
+## [37] &quot;magnet_dumbbell_x&quot;    &quot;magnet_dumbbell_y&quot;    &quot;magnet_dumbbell_z&quot;   
+## [40] &quot;roll_forearm&quot;         &quot;pitch_forearm&quot;        &quot;yaw_forearm&quot;         
+## [43] &quot;total_accel_forearm&quot;  &quot;gyros_forearm_x&quot;      &quot;gyros_forearm_y&quot;     
+## [46] &quot;gyros_forearm_z&quot;      &quot;accel_forearm_x&quot;      &quot;accel_forearm_y&quot;     
+## [49] &quot;accel_forearm_z&quot;      &quot;magnet_forearm_x&quot;     &quot;magnet_forearm_y&quot;    
+## [52] &quot;magnet_forearm_z&quot;     &quot;classe&quot;
+</code></pre>
+
+<p>Following is the list of attributes removed from analysis because of near zero
+variance or attributes, such as time stamps or identifiers, that will not
+generalize.</p>
+
+<pre><code class="r">setdiff(raw.names,names(train))
+</code></pre>
+
+<pre><code>##   [1] &quot;X&quot;                        &quot;user_name&quot;               
+##   [3] &quot;raw_timestamp_part_1&quot;     &quot;raw_timestamp_part_2&quot;    
+##   [5] &quot;cvtd_timestamp&quot;           &quot;new_window&quot;              
+##   [7] &quot;num_window&quot;               &quot;kurtosis_roll_belt&quot;      
+##   [9] &quot;kurtosis_picth_belt&quot;      &quot;kurtosis_yaw_belt&quot;       
+##  [11] &quot;skewness_roll_belt&quot;       &quot;skewness_roll_belt.1&quot;    
+##  [13] &quot;skewness_yaw_belt&quot;        &quot;max_roll_belt&quot;           
+##  [15] &quot;max_picth_belt&quot;           &quot;max_yaw_belt&quot;            
+##  [17] &quot;min_roll_belt&quot;            &quot;min_pitch_belt&quot;          
+##  [19] &quot;min_yaw_belt&quot;             &quot;amplitude_roll_belt&quot;     
+##  [21] &quot;amplitude_pitch_belt&quot;     &quot;amplitude_yaw_belt&quot;      
+##  [23] &quot;var_total_accel_belt&quot;     &quot;avg_roll_belt&quot;           
+##  [25] &quot;stddev_roll_belt&quot;         &quot;var_roll_belt&quot;           
+##  [27] &quot;avg_pitch_belt&quot;           &quot;stddev_pitch_belt&quot;       
+##  [29] &quot;var_pitch_belt&quot;           &quot;avg_yaw_belt&quot;            
+##  [31] &quot;stddev_yaw_belt&quot;          &quot;var_yaw_belt&quot;            
+##  [33] &quot;var_accel_arm&quot;            &quot;avg_roll_arm&quot;            
+##  [35] &quot;stddev_roll_arm&quot;          &quot;var_roll_arm&quot;            
+##  [37] &quot;avg_pitch_arm&quot;            &quot;stddev_pitch_arm&quot;        
+##  [39] &quot;var_pitch_arm&quot;            &quot;avg_yaw_arm&quot;             
+##  [41] &quot;stddev_yaw_arm&quot;           &quot;var_yaw_arm&quot;             
+##  [43] &quot;kurtosis_roll_arm&quot;        &quot;kurtosis_picth_arm&quot;      
+##  [45] &quot;kurtosis_yaw_arm&quot;         &quot;skewness_roll_arm&quot;       
+##  [47] &quot;skewness_pitch_arm&quot;       &quot;skewness_yaw_arm&quot;        
+##  [49] &quot;max_roll_arm&quot;             &quot;max_picth_arm&quot;           
+##  [51] &quot;max_yaw_arm&quot;              &quot;min_roll_arm&quot;            
+##  [53] &quot;min_pitch_arm&quot;            &quot;min_yaw_arm&quot;             
+##  [55] &quot;amplitude_roll_arm&quot;       &quot;amplitude_pitch_arm&quot;     
+##  [57] &quot;amplitude_yaw_arm&quot;        &quot;kurtosis_roll_dumbbell&quot;  
+##  [59] &quot;kurtosis_picth_dumbbell&quot;  &quot;kurtosis_yaw_dumbbell&quot;   
+##  [61] &quot;skewness_roll_dumbbell&quot;   &quot;skewness_pitch_dumbbell&quot; 
+##  [63] &quot;skewness_yaw_dumbbell&quot;    &quot;max_roll_dumbbell&quot;       
+##  [65] &quot;max_picth_dumbbell&quot;       &quot;max_yaw_dumbbell&quot;        
+##  [67] &quot;min_roll_dumbbell&quot;        &quot;min_pitch_dumbbell&quot;      
+##  [69] &quot;min_yaw_dumbbell&quot;         &quot;amplitude_roll_dumbbell&quot; 
+##  [71] &quot;amplitude_pitch_dumbbell&quot; &quot;amplitude_yaw_dumbbell&quot;  
+##  [73] &quot;var_accel_dumbbell&quot;       &quot;avg_roll_dumbbell&quot;       
+##  [75] &quot;stddev_roll_dumbbell&quot;     &quot;var_roll_dumbbell&quot;       
+##  [77] &quot;avg_pitch_dumbbell&quot;       &quot;stddev_pitch_dumbbell&quot;   
+##  [79] &quot;var_pitch_dumbbell&quot;       &quot;avg_yaw_dumbbell&quot;        
+##  [81] &quot;stddev_yaw_dumbbell&quot;      &quot;var_yaw_dumbbell&quot;        
+##  [83] &quot;kurtosis_roll_forearm&quot;    &quot;kurtosis_picth_forearm&quot;  
+##  [85] &quot;kurtosis_yaw_forearm&quot;     &quot;skewness_roll_forearm&quot;   
+##  [87] &quot;skewness_pitch_forearm&quot;   &quot;skewness_yaw_forearm&quot;    
+##  [89] &quot;max_roll_forearm&quot;         &quot;max_picth_forearm&quot;       
+##  [91] &quot;max_yaw_forearm&quot;          &quot;min_roll_forearm&quot;        
+##  [93] &quot;min_pitch_forearm&quot;        &quot;min_yaw_forearm&quot;         
+##  [95] &quot;amplitude_roll_forearm&quot;   &quot;amplitude_pitch_forearm&quot; 
+##  [97] &quot;amplitude_yaw_forearm&quot;    &quot;var_accel_forearm&quot;       
+##  [99] &quot;avg_roll_forearm&quot;         &quot;stddev_roll_forearm&quot;     
+## [101] &quot;var_roll_forearm&quot;         &quot;avg_pitch_forearm&quot;       
+## [103] &quot;stddev_pitch_forearm&quot;     &quot;var_pitch_forearm&quot;       
+## [105] &quot;avg_yaw_forearm&quot;          &quot;stddev_yaw_forearm&quot;      
+## [107] &quot;var_yaw_forearm&quot;
 </code></pre>
 
 </body>
