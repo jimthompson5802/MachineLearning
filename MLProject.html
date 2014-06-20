@@ -5,7 +5,7 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 <meta http-equiv="x-ua-compatible" content="IE=9" >
 
-<title>Practical Machine Learning - Project</title>
+<title>Predicting Quality of Weight Lifting Exercise Through Motion Data</title>
 
 <style type="text/css">
 body, td {
@@ -179,7 +179,7 @@ hljs.initHighlightingOnLoad();
 </head>
 
 <body>
-<h1>Practical Machine Learning - Project</h1>
+<h1>Predicting Quality of Weight Lifting Exercise Through Motion Data</h1>
 
 <p>Author: Jim Thompson</p>
 
@@ -192,7 +192,7 @@ correctly, the remaining four classes represent common mistakes.  Data used for 
 
 <p>The predictive model developed in this work is based on a boosted tree machine 
 learning algorithm.  The specific implementation used is the <strong>gbm</strong> package from R.
-The model is able to correctly predict 93.8% of the out-of-sample test cases.</p>
+The model correctly predicts 93.8% for the out-of-sample test cases.</p>
 
 <p>The remainder of this paper describes data preparation for modeling, model training and
 assessing the model&#39;s performance.</p>
@@ -275,7 +275,10 @@ raw.data &lt;- raw.data[raw.idx,]
 set.seed(456)
 train.idx &lt;- createDataPartition(raw.data$classe,p=0.6,list=FALSE)
 
+## data set for training
 train &lt;- raw.data[train.idx,]
+
+## data set to assess out-of-sample model performance
 test &lt;- raw.data[-train.idx,]
 </code></pre>
 
@@ -340,7 +343,7 @@ system.time(gbm.mdl1 &lt;- train(classe~.,train,method=&quot;gbm&quot;,verbose=F
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##    6.84    0.08  366.44
+##    6.33    0.17  399.62
 </code></pre>
 
 <pre><code class="r">## stop cluster
@@ -371,7 +374,7 @@ print(gbm.mdl1)
 ##   2                  200      0.9       0.9    0.02         0.02    
 ##   3                  50       0.9       0.8    0.02         0.02    
 ##   3                  100      0.9       0.9    0.02         0.02    
-##   3                  200      0.9       0.9    0.01         0.02    
+##   3                  200      0.9       0.9    0.02         0.02    
 ## 
 ## Tuning parameter &#39;shrinkage&#39; was held constant at a value of 0.1
 ## Accuracy was used to select the optimal model using  the largest value.
@@ -383,12 +386,13 @@ print(gbm.mdl1)
 
 <p>Using the <strong>gbm</strong> model with the optimal hyper-parameters, determined above, we assess
 model performance.  First we present the confusion matrix.  Next we see that the
-model is 93.8% accurate on the test data.  The 95% confidence interval for accuracy
+model is 93.8% accurate on the out-of-sample data.  The 95% confidence interval for accuracy
 is from 92.6% to 94.8%.</p>
 
-<pre><code class="r">pred.classe &lt;- predict(gbm.mdl1,test)
+<pre><code class="r">## make prediction of classe value on the out-of-sample test data
+pred.classe &lt;- predict(gbm.mdl1,test)
 
-
+## report accuracy of predictions on out-of-sample data
 confusionMatrix(pred.classe,test$classe)
 </code></pre>
 

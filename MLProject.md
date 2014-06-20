@@ -1,4 +1,4 @@
-Practical Machine Learning - Project
+Predicting Quality of Weight Lifting Exercise Through Motion Data
 ====================================
 Author: Jim Thompson
 
@@ -11,7 +11,7 @@ correctly, the remaining four classes represent common mistakes.  Data used for 
 
 The predictive model developed in this work is based on a boosted tree machine 
 learning algorithm.  The specific implementation used is the **gbm** package from R.
-The model is able to correctly predict 93.8% of the out-of-sample test cases.
+The model correctly predicts 93.8% for the out-of-sample test cases.
 
 The remainder of this paper describes data preparation for modeling, model training and
 assessing the model's performance.
@@ -96,7 +96,10 @@ raw.data <- raw.data[raw.idx,]
 set.seed(456)
 train.idx <- createDataPartition(raw.data$classe,p=0.6,list=FALSE)
 
+## data set for training
 train <- raw.data[train.idx,]
+
+## data set to assess out-of-sample model performance
 test <- raw.data[-train.idx,]
 ```
 
@@ -165,7 +168,7 @@ system.time(gbm.mdl1 <- train(classe~.,train,method="gbm",verbose=FALSE,
 
 ```
 ##    user  system elapsed 
-##    6.84    0.08  366.44
+##    6.33    0.17  399.62
 ```
 
 ```r
@@ -198,7 +201,7 @@ print(gbm.mdl1)
 ##   2                  200      0.9       0.9    0.02         0.02    
 ##   3                  50       0.9       0.8    0.02         0.02    
 ##   3                  100      0.9       0.9    0.02         0.02    
-##   3                  200      0.9       0.9    0.01         0.02    
+##   3                  200      0.9       0.9    0.02         0.02    
 ## 
 ## Tuning parameter 'shrinkage' was held constant at a value of 0.1
 ## Accuracy was used to select the optimal model using  the largest value.
@@ -210,14 +213,15 @@ Model Performance
 -----------------
 Using the **gbm** model with the optimal hyper-parameters, determined above, we assess
 model performance.  First we present the confusion matrix.  Next we see that the
-model is 93.8% accurate on the test data.  The 95% confidence interval for accuracy
+model is 93.8% accurate on the out-of-sample data.  The 95% confidence interval for accuracy
 is from 92.6% to 94.8%.
 
 
 ```r
+## make prediction of classe value on the out-of-sample test data
 pred.classe <- predict(gbm.mdl1,test)
 
-
+## report accuracy of predictions on out-of-sample data
 confusionMatrix(pred.classe,test$classe)
 ```
 
