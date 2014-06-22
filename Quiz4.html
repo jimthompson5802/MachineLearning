@@ -281,9 +281,34 @@ gbm.mdl &lt;- train(y~.,data=vowel.train,method=&quot;gbm&quot;,verbose=FALSE,me
 </code></pre>
 
 <pre><code class="r">pred.rf &lt;- predict(rf.mdl,vowel.test)
-pred.gbm &lt;- predict(gbm.mdl,vowel.test)
+</code></pre>
 
-confusionMatrix(pred.rf,vowel.test$y)$overall[&quot;Accuracy&quot;]
+<pre><code>## Loading required package: randomForest
+## randomForest 4.6-7
+## Type rfNews() to see new features/changes/bug fixes.
+</code></pre>
+
+<pre><code class="r">pred.gbm &lt;- predict(gbm.mdl,vowel.test)
+</code></pre>
+
+<pre><code>## Loading required package: gbm
+## Loading required package: survival
+## Loading required package: splines
+## 
+## Attaching package: &#39;survival&#39;
+## 
+## The following object is masked from &#39;package:caret&#39;:
+## 
+##     cluster
+## 
+## Loading required package: parallel
+## Loaded gbm 2.1
+</code></pre>
+
+<pre><code class="r">confusionMatrix(pred.rf,vowel.test$y)$overall[&quot;Accuracy&quot;]
+</code></pre>
+
+<pre><code>## Warning: package &#39;e1071&#39; was built under R version 3.0.3
 </code></pre>
 
 <pre><code>## Accuracy 
@@ -306,7 +331,7 @@ confusionMatrix(pred.comb,test.comb)$overall[&quot;Accuracy&quot;]
 </code></pre>
 
 <pre><code>## Accuracy 
-##   0.6623
+##    0.658
 </code></pre>
 
 <h2>Question 2</h2>
@@ -334,8 +359,15 @@ confusionMatrix(pred.comb,test.comb)$overall[&quot;Accuracy&quot;]
 <pre><code class="r">test.pred.rf &lt;- predict(rf.mdl,testing)
 test.pred.gbm &lt;- predict(gbm.mdl,testing)
 test.pred.lda &lt;- predict(lda.mdl,testing)
+</code></pre>
 
-test.stack.df &lt;- data.frame(pred.rf=test.pred.rf,pred.gbm=test.pred.gbm,
+<pre><code>## Loading required package: MASS
+</code></pre>
+
+<pre><code>## Warning: package &#39;MASS&#39; was built under R version 3.0.3
+</code></pre>
+
+<pre><code class="r">test.stack.df &lt;- data.frame(pred.rf=test.pred.rf,pred.gbm=test.pred.gbm,
                             pred.lda=test.pred.lda)
 test.pred.stack &lt;- predict(stack.rf.mdl,test.stack.df)
 
@@ -394,58 +426,20 @@ lasso.mdl &lt;- train(CompressiveStrength~.,data=training,method=&quot;lasso&quo
 <h2>Question 4</h2>
 
 <pre><code class="r">library(lubridate)
-</code></pre>
-
-<pre><code>## Warning: package &#39;lubridate&#39; was built under R version 3.0.3
-</code></pre>
-
-<pre><code>## 
-## Attaching package: &#39;lubridate&#39;
-## 
-## The following object is masked from &#39;package:plyr&#39;:
-## 
-##     here
-</code></pre>
-
-<pre><code class="r">library(forecast)
-</code></pre>
-
-<pre><code>## Warning: package &#39;forecast&#39; was built under R version 3.0.3
-</code></pre>
-
-<pre><code>## Loading required package: zoo
-</code></pre>
-
-<pre><code>## Warning: package &#39;zoo&#39; was built under R version 3.0.3
-</code></pre>
-
-<pre><code>## 
-## Attaching package: &#39;zoo&#39;
-## 
-## The following objects are masked from &#39;package:base&#39;:
-## 
-##     as.Date, as.Date.numeric
-## 
-## Loading required package: timeDate
-## 
-## Attaching package: &#39;timeDate&#39;
-## 
-## The following objects are masked from &#39;package:e1071&#39;:
-## 
-##     kurtosis, skewness
-## 
-## This is forecast 5.4
-</code></pre>
-
-<pre><code class="r">dat = read.csv(&quot;./data/gaData.csv&quot;)
+library(forecast)
+dat = read.csv(&quot;./data/gaData.csv&quot;)
 training = dat[year(dat$date) == 2011,]
 tstrain = ts(training$visitsTumblr)
 
 bat.mdl &lt;- bats(tstrain)
 
 fcast &lt;- forecast(bat.mdl,235)
+plot(fcast)
+</code></pre>
 
-test &lt;- dat[366:600,&quot;visitsTumblr&quot;]
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAfgAAAH4CAMAAACR9g9NAAAAjVBMVEX9/v0AAAAAADkAAGUAAP8AOTkAOY8AZmUAZo8AZrU5AAA5ADk5AGU5OTk5OWU5OY85ZrU5j9plAABlADllAGVlOQBlOY9lZjllZmVltf2POQCPOTmPOWWPZgCPtY+P29qP2/2xtc61ZgC124+1/v3ajzna24/a/tra/v3b29/9tWX924/9/rX9/tr9/v3kjjH8AAAAL3RSTlP/////////////////////////////////////////////////////////////AFqlOPcAAAAJcEhZcwAACxIAAAsSAdLdfvwAAA+qSURBVHic7Z3bYuO2EUBDp93WbtqNvOnFTtp4VavZSLb+//NKgheRFCRTM5TAwZzzsBIvGGJ4CBBQHPK7Pbjku9QVgDQg3imIdwrinYJ4pyDeKYh3CuKdgninIN4piHcK4p2CeKcg3imIdwrinYJ4pyDeKYh3CuKdgninIN4piHcK4p2CeKcsT/z7cxF4urzoelRm91DcvUw72p8ew8enb/W6+96m+/3bY7NlE8LtHu4HRy1WYd/DyrDDphjsNdi9ImzfPawuzHEuchK/Hpc5WnH6aI344Le8Xr5/7Yl/e6z9lxfAfYg6ULotSpPrZo/msEUQHz162L2i3r6ujpSCJYrvzkV5bqqz9P5898+q6W6ay6EyUu1TnsPQoktR5XLwdN8s7Jvdik+/9QqvqjJ/fi63963sHkrbb49VofrfTfGvZmvYFP4NWzbl6jLqX0fiV+Ue37/WZfeHHTYnxLdtPGw/LN6YJYtfNz1tbfBbvbhqWmJ1pusm2nz+9nxonW2P3a5uC9+Hi6Wmu7wG4suvZQX+23TmrfhaYXkBvuzff37ZjsQ/7cOadX1b6XbYnhD/1P8WjpiCJYpvHO0eyjP59nj3Ut9zg4TqqqiaV9uLV75qO/u6Z+8W2hVt4SbWtqgKFE/V92avRnw4at2B3LcXXx0t1Khc0Uoait8E8av+jaUVH2vMm95eq0H/dlsWLH7bdpihpbVttXLXntDKVtPyq9NXnfluoaIWXxduYm3DWK26MUTFF02H3uhpL6N12NIuDcVXDT0qvj8GrG5ATahy93opbO/V47YsUXzj7bT4th9uTIUv5S7hzLcLFSfFf/p2LD4cdV0d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" alt="plot of chunk Question4"/> </p>
+
+<pre><code class="r">test &lt;- dat[366:600,&quot;visitsTumblr&quot;]
 
 cat(&quot;test set inside the 95% interval&quot;)
 </code></pre>

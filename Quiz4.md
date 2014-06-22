@@ -118,9 +118,39 @@ print(gbm.mdl)
 
 ```r
 pred.rf <- predict(rf.mdl,vowel.test)
-pred.gbm <- predict(gbm.mdl,vowel.test)
+```
 
+```
+## Loading required package: randomForest
+## randomForest 4.6-7
+## Type rfNews() to see new features/changes/bug fixes.
+```
+
+```r
+pred.gbm <- predict(gbm.mdl,vowel.test)
+```
+
+```
+## Loading required package: gbm
+## Loading required package: survival
+## Loading required package: splines
+## 
+## Attaching package: 'survival'
+## 
+## The following object is masked from 'package:caret':
+## 
+##     cluster
+## 
+## Loading required package: parallel
+## Loaded gbm 2.1
+```
+
+```r
 confusionMatrix(pred.rf,vowel.test$y)$overall["Accuracy"]
+```
+
+```
+## Warning: package 'e1071' was built under R version 3.0.3
 ```
 
 ```
@@ -148,7 +178,7 @@ confusionMatrix(pred.comb,test.comb)$overall["Accuracy"]
 
 ```
 ## Accuracy 
-##   0.6623
+##    0.658
 ```
 
 Question 2
@@ -183,7 +213,17 @@ Question 2
 test.pred.rf <- predict(rf.mdl,testing)
 test.pred.gbm <- predict(gbm.mdl,testing)
 test.pred.lda <- predict(lda.mdl,testing)
+```
 
+```
+## Loading required package: MASS
+```
+
+```
+## Warning: package 'MASS' was built under R version 3.0.3
+```
+
+```r
 test.stack.df <- data.frame(pred.rf=test.pred.rf,pred.gbm=test.pred.gbm,
                             pred.lda=test.pred.lda)
 test.pred.stack <- predict(stack.rf.mdl,test.stack.df)
@@ -256,57 +296,7 @@ Question 4
 
 ```r
 library(lubridate)
-```
-
-```
-## Warning: package 'lubridate' was built under R version 3.0.3
-```
-
-```
-## 
-## Attaching package: 'lubridate'
-## 
-## The following object is masked from 'package:plyr':
-## 
-##     here
-```
-
-```r
 library(forecast)
-```
-
-```
-## Warning: package 'forecast' was built under R version 3.0.3
-```
-
-```
-## Loading required package: zoo
-```
-
-```
-## Warning: package 'zoo' was built under R version 3.0.3
-```
-
-```
-## 
-## Attaching package: 'zoo'
-## 
-## The following objects are masked from 'package:base':
-## 
-##     as.Date, as.Date.numeric
-## 
-## Loading required package: timeDate
-## 
-## Attaching package: 'timeDate'
-## 
-## The following objects are masked from 'package:e1071':
-## 
-##     kurtosis, skewness
-## 
-## This is forecast 5.4
-```
-
-```r
 dat = read.csv("./data/gaData.csv")
 training = dat[year(dat$date) == 2011,]
 tstrain = ts(training$visitsTumblr)
@@ -314,7 +304,12 @@ tstrain = ts(training$visitsTumblr)
 bat.mdl <- bats(tstrain)
 
 fcast <- forecast(bat.mdl,235)
+plot(fcast)
+```
 
+![plot of chunk Question4](figure/Question4.png) 
+
+```r
 test <- dat[366:600,"visitsTumblr"]
 
 cat("test set inside the 95% interval")

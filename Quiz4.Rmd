@@ -115,6 +115,7 @@ tstrain = ts(training$visitsTumblr)
 bat.mdl <- bats(tstrain)
 
 fcast <- forecast(bat.mdl,235)
+plot(fcast)
 
 test <- dat[366:600,"visitsTumblr"]
 
