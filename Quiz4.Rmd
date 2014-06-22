@@ -1,0 +1,147 @@
+Machine Learning - Quiz 4
+========================================================
+```{r}
+library(caret)
+library(plyr)
+```
+
+
+
+Question 1
+----------
+```{r Quesiton1,warning=FALSE,cache=TRUE}
+library(ElemStatLearn)
+library(plyr)
+data(vowel.train)
+data(vowel.test) 
+
+vowel.train <- mutate(vowel.train,y=factor(y))
+vowel.test <- mutate(vowel.test,y=factor(y))
+
+library(caret)
+set.seed(33833)
+rf.mdl <- train(y~.,data=vowel.train,method="rf",verbose=FALSE,metric="Accuracy")
+
+gbm.mdl <- train(y~.,data=vowel.train,method="gbm",verbose=FALSE,metric="Accuracy")
+
+```
+```{r}
+print(rf.mdl)
+print(gbm.mdl)
+
+pred.rf <- predict(rf.mdl,vowel.test)
+pred.gbm <- predict(gbm.mdl,vowel.test)
+
+confusionMatrix(pred.rf,vowel.test$y)$overall["Accuracy"]
+confusionMatrix(pred.gbm,vowel.test$y)$overall["Accuracy"]
+
+idx <- pred.rf == pred.gbm
+
+pred.comb <- pred.rf[idx]
+test.comb <- vowel.test[idx,"y"]
+
+confusionMatrix(pred.comb,test.comb)$overall["Accuracy"]
+```
+
+Question 2
+----------
+```{r Question2,cache=TRUE,echo=FALSE}
+set.seed(3433)
+library(AppliedPredictiveModeling)
+data(AlzheimerDisease)
+adData = data.frame(diagnosis,predictors)
+inTrain = createDataPartition(adData$diagnosis, p = 3/4)[[1]]
+training = adData[ inTrain,]
+testing = adData[-inTrain,]
+
+set.seed(62433)
+
+rf.mdl <- train(diagnosis~.,data=training,method="rf",verbose=FALSE,metric="Accuracy")
+gbm.mdl <- train(diagnosis~.,data=training,method="gbm",verbose=FALSE,metric="Accuracy")
+lda.mdl <- train(diagnosis~.,data=training,method="lda",verbose=FALSE,metric="Accuracy")
+
+pred.rf <- predict(rf.mdl,training)
+pred.gbm <- predict(gbm.mdl,training)
+pred.lda <- predict(lda.mdl,training)
+
+stack.df <- data.frame(pred.rf,pred.gbm,pred.lda)
+
+stack.rf.mdl <- train(stack.df,training$diagnosis,method="rf",verbose=FALSE,metric="Accuracy")
+pred.stack <- predict()
+```
+```{r}
+test.pred.rf <- predict(rf.mdl,testing)
+test.pred.gbm <- predict(gbm.mdl,testing)
+test.pred.lda <- predict(lda.mdl,testing)
+
+test.stack.df <- data.frame(pred.rf=test.pred.rf,pred.gbm=test.pred.gbm,
+                            pred.lda=test.pred.lda)
+test.pred.stack <- predict(stack.rf.mdl,test.stack.df)
+
+confusionMatrix(test.pred.rf,testing$diagnosis)$overall["Accuracy"]
+confusionMatrix(test.pred.gbm,testing$diagnosis)$overall["Accuracy"]
+confusionMatrix(test.pred.lda,testing$diagnosis)$overall["Accuracy"]
+confusionMatrix(test.pred.stack,testing$diagnosis)$overall["Accuracy"]
+
+```
+
+Question 3
+----------
+```{r Question3,cache=TRUE}
+set.seed(3523)
+library(AppliedPredictiveModeling)
+data(concrete)
+inTrain = createDataPartition(concrete$CompressiveStrength, p = 3/4)[[1]]
+training = concrete[ inTrain,]
+testing = concrete[-inTrain,]
+
+set.seed(233)
+lasso.mdl <- train(CompressiveStrength~.,data=training,method="lasso",
+                metric="RMSE")
+
+plot(lasso.mdl$finalModel,xvar="penalty",use.color=TRUE)
+
+```
+
+Question 4
+----------
+```{r Question4,cache=TRUE}
+library(lubridate)
+library(forecast)
+dat = read.csv("./data/gaData.csv")
+training = dat[year(dat$date) == 2011,]
+tstrain = ts(training$visitsTumblr)
+
+bat.mdl <- bats(tstrain)
+
+fcast <- forecast(bat.mdl,235)
+
+test <- dat[366:600,"visitsTumblr"]
+
+cat("test set inside the 95% interval")
+100 * sum(fcast$lower[,2] <= test & test <= fcast$upper[,2])/length(test)
+
+```
+
+
+
+Question 5
+----------
+```{r Question5,cache=TRUE}
+set.seed(3523)
+library(AppliedPredictiveModeling)
+data(concrete)
+inTrain = createDataPartition(concrete$CompressiveStrength, p = 3/4)[[1]]
+training = concrete[ inTrain,]
+testing = concrete[-inTrain,]
+
+library(e1071)
+set.seed(325)
+svm.mdl <- svm(CompressiveStrength~.,data=training)
+
+pred <- predict(svm.mdl,testing)
+
+mse <- sum((pred-testing$CompressiveStrength)^2)/length(pred);mse
+sqrt(mse)
+```
+
